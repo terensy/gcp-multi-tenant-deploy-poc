@@ -1,0 +1,21 @@
+apiVersion: skaffold/v4beta7
+kind: Config
+metadata:
+  name: demo-site
+
+# 公版 Demo 網站的 image，統一在管理 Project 建置一次
+build:
+  artifacts:
+    - image: asia-east1-docker.pkg.dev/gcpdeploy-poc-mgmt/demo-site/app
+      docker:
+        dockerfile: ../Dockerfile
+  googleCloudBuild:
+    projectId: gcpdeploy-poc-mgmt
+
+# Cloud Deploy 用這份 manifest 部署到每個 Target（每個客戶 Project）
+manifests:
+  rawYaml:
+    - run-service.yaml
+
+deploy:
+  cloudrun: {}

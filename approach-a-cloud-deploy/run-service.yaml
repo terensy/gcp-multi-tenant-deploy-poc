@@ -1,0 +1,21 @@
+# Cloud Run service 的 Knative manifest 模板
+# 三個客戶目前都是「同一份公版程式碼、內容靠環境變數/設定區分」，所以 image 相同，
+# 差異僅在於部署到哪個 Target（哪個客戶 Project），內容差異交給 CUSTOMER_ID 環境變數處理。
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: demo-site
+spec:
+  template:
+    spec:
+      containers:
+        - image: asia-east1-docker.pkg.dev/gcpdeploy-poc-mgmt/demo-site/app
+          env:
+            - name: CUSTOMER_ID
+              value: "default"   # from-param: ${customer-id}
+              # 上面這行的註解是 Cloud Deploy 官方指定語法，渲染時會被 Target 的
+              # deployParameters.customer-id 值取代，不是普通註解，不可省略/更動格式。
+          resources:
+            limits:
+              cpu: "1"
+              memory: 512Mi

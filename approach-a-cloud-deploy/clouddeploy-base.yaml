@@ -1,0 +1,13 @@
+# === 靜態部分：Pipeline 定義本身不隨客戶數量變動 ===
+# 客戶 Target 清單（含 multiTarget 的 targetIds）由下面其中一支腳本產生，
+# 附加在這份檔案之後，合併成 clouddeploy.generated.yaml 再一次 apply：
+#   - scripts/generate-clouddeploy-config.sh              讀 ../customers.yaml
+#   - scripts/generate-clouddeploy-config-from-folder.sh  動態掃描 GCP Folder
+apiVersion: deploy.cloud.google.com/v1
+kind: DeliveryPipeline
+metadata:
+  name: demo-site-pipeline
+description: 平行部署公版 Demo 網站到所有客戶 Project
+serialPipeline:
+  stages:
+    - targetId: all-customers   # 指向下面（生成部分）的 multiTarget

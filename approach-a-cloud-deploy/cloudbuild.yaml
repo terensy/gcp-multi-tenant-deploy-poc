@@ -1,0 +1,70 @@
+# 範例：push 到 git 時自動觸發的 cloudbuild.yaml，取代目前手動執行的 ../deploy.sh。
+# 目前還沒有實際接上 Cloud Build Trigger（這個目錄也還不是 git repo），
+# 這份檔案先讓你參考自動化之後長什麼樣子。
+#
+# 部署前會先動態掃描 _CUSTOMER_FOLDER_ID 這個 GCP Folder 底下有哪些 Project，
+# 重新產生 Cloud Deploy 的 Target/multiTarget 設定並套用，取代手動維護
+# customers.yaml。前提：丟進這個 Folder 的每個 Project 都已經先跑過 Terraform
+# onboarding（建好 deployer SA + 授權），這份 cloudbuild.yaml 不處理 onboarding，
+# 只處理「用目前 Folder 底下已 onboard 好的 Project 清單來部署」。
+#
+# 要讓這份真的能跑，還需要（尚未設定）：
+#   1. 這個目錄接到 Cloud Source Repositories 或 GitHub
+#   2. 在 gcpdeploy-poc-mgmt 建立 Cloud Build Trigger，指向本檔案
+#   3. Trigger 執行用的 Service Account 需要：
+#        - 對 _CUSTOMER_FOLDER_ID 這個 Folder 的 roles/resourcemanager.folderViewer
+#          （掃描 Folder 底下有哪些 Project）
+#        - roles/clouddeploy.admin（在 demo-site-pipeline 上，因為現在不只建
+#          Release，還要能新增/更新 Target 資源，比單純 releaser 需要更多權限）
+#        - 對每個客戶 deployer SA 的 roles/iam.serviceAccountUser（actAs）
+#      這些權限目前只授權給執行部署的人類帳號，還沒授權給任何 SA。
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    id: build
+    args: ['build', '-t', '${_IMAGE}:${SHORT_SHA}', '.']
+
+  - name: gcr.io/cloud-builders/docker
+    id: push
+    args: ['push', '${_IMAGE}:${SHORT_SHA}']
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    id: sync-targets-from-folder
+    entrypoint: bash
+    args:
+      - approach-a-cloud-deploy/scripts/generate-clouddeploy-config-from-folder.sh
+      - '${_CUSTOMER_FOLDER_ID}'
+      - '${_REGION}'
+      - '${_MGMT_PROJECT}'
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    id: apply-targets
+    entrypoint: gcloud
+    args:
+      - deploy
+      - apply
+      - '--file=approach-a-cloud-deploy/clouddeploy.generated.yaml'
+      - '--region=${_REGION}'
+      - '--project=${_MGMT_PROJECT}'
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    id: create-release
+    entrypoint: gcloud
+    args:
+      - deploy
+      - releases
+      - create
+      - 'release-${SHORT_SHA}'
+      - '--project=${_MGMT_PROJECT}'
+      - '--region=${_REGION}'
+      - '--delivery-pipeline=demo-site-pipeline'
+      - '--images=${_IMAGE}=${_IMAGE}:${SHORT_SHA}'
+
+substitutions:
+  _MGMT_PROJECT: gcpdeploy-poc-mgmt
+  _REGION: asia-east1
+  _IMAGE: asia-east1-docker.pkg.dev/gcpdeploy-poc-mgmt/demo-site/app
+  _CUSTOMER_FOLDER_ID: '592485688380'   # 換成實際放客戶 Project 的 Folder ID
+
+options:
+  logging: CLOUD_LOGGING_ONLY

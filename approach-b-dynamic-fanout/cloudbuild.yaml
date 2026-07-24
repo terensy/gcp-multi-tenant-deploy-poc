@@ -1,0 +1,33 @@
+# 方案 B：build 一次公版 image，push 到管理 Project 的 Artifact Registry，
+# 再由 deploy-fanout.sh 動態讀 customers.yaml 平行部署到所有客戶 Project。
+#
+# 觸發方式：接在 git push 到 main 的 Cloud Build Trigger 上，或手動
+#   gcloud builds submit --config=cloudbuild.yaml --substitutions=_MAX_PARALLEL=10 ..
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    id: build
+    args: ['build', '-t', '${_IMAGE}:${SHORT_SHA}', '.']
+
+  - name: gcr.io/cloud-builders/docker
+    id: push
+    args: ['push', '${_IMAGE}:${SHORT_SHA}']
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
+    id: fanout-deploy
+    entrypoint: bash
+    args:
+      - 'approach-b-dynamic-fanout/scripts/deploy-fanout.sh'
+      - '${_IMAGE}:${SHORT_SHA}'
+      - 'customers.yaml'
+      - '${_MAX_PARALLEL}'
+
+substitutions:
+  _IMAGE: 'asia-east1-docker.pkg.dev/${PROJECT_ID}/demo-site/app'
+  _MAX_PARALLEL: '10'   # 併發數上限，依 Cloud Build 併發 quota 調整，見 README
+
+# 使用自訂的 fanout-deployer SA 執行本次 build（對應 terraform onboarding 的
+# var.fanout_orchestrator_sa），才能 impersonate 各客戶的 deployer SA
+serviceAccount: 'projects/${PROJECT_ID}/serviceAccounts/fanout-deployer@${PROJECT_ID}.iam.gserviceaccount.com'
+options:
+  logging: CLOUD_LOGGING_ONLY

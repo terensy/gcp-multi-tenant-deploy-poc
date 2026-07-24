@@ -1,0 +1,27 @@
+# 客戶 Project 註冊清單 —— 兩個方案都以此檔案為「唯一資料來源 (single source of truth)」
+# 新增客戶時，onboarding 流程只需要在這裡加一筆，並觸發下面對應方案的產生/套用腳本。
+customers:
+  - id: customer-a
+    project_id: gcpdeploy-poc-cust-a
+    region: asia-east1
+    service_name: demo-site
+    deployer_sa: deployer@gcpdeploy-poc-cust-a.iam.gserviceaccount.com
+
+  - id: customer-b
+    project_id: gcpdeploy-poc-cust-b
+    region: asia-east1
+    service_name: demo-site
+    deployer_sa: deployer@gcpdeploy-poc-cust-b.iam.gserviceaccount.com
+
+  - id: customer-c
+    project_id: gcpdeploy-poc-cust-c
+    region: asia-east1
+    service_name: demo-site
+    deployer_sa: deployer@gcpdeploy-poc-cust-c.iam.gserviceaccount.com
+
+  # 未來新增客戶只要在這裡加一筆即可，例如：
+  # - id: customer-d
+  #   project_id: gcpdeploy-poc-cust-d
+  #   region: asia-east1
+  #   service_name: demo-site
+  #   deployer_sa: deployer@gcpdeploy-poc-cust-d.iam.gserviceaccount.com

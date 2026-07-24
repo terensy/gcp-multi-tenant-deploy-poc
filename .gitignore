@@ -1,0 +1,11 @@
+# Terraform（.terraform.lock.hcl 刻意保留、要進版控，用來鎖 provider 版本）
+.terraform/
+terraform.tfstate
+terraform.tfstate.backup
+*.tfplan
+
+# Cloud Deploy 產生的暫存檔（跑產生腳本時才會出現）
+approach-a-cloud-deploy/clouddeploy.generated.yaml
+
+# OS
+.DS_Store
