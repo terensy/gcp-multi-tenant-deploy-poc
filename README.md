@@ -1,5 +1,7 @@
 # GCP 多租戶 Demo 網站 —— 一次更新多個客戶 Project 的 PoC
 
+**繁體中文** | [English](README.en.md)
+
 ## 情境
 
 一個管理 Project（`mgmt-project`）+ N 個客戶 Project，每個客戶 Project 各自用 Cloud Run
